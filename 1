@@ -1,0 +1,57 @@
+
+#!/bin/bash
+ 
+mkdir -p "/tmp/e2e-node-results"
+ 
+UUID="$(cat /dev/urandom | tr -dc 'a-z' | fold -w 4 | head -n 1)"
+TMPDIR="/tmp/e2e-node-results/${UUID}"
+mkdir -p "${TMPDIR}"
+ 
+echo "TMPDIR= ${TMPDIR}"
+ 
+PROJECT="jiamingxu-gke-dev"
+ZONE="us-central1-c"
+ 
+IMAGE_CONFIG="${GOPATH}/src/k8s.io/test-infra/jobs/e2e_node/containerd/containerd-master/cgroupv2/image-config-cgroupv2.yaml"
+IMAGE_CONFIG_OUT="${TMPDIR}/image-config.yaml"
+cp "${IMAGE_CONFIG}" "${TMPDIR}/image-config.yaml"
+sed -i -e s:/go:${GOPATH}:g -e s:/workspace:${GOPATH}/src/k8s.io:g "${IMAGE_CONFIG_OUT}"
+ 
+SSH_KEY="${HOME}/.ssh/google_compute_engine"
+ 
+# --node-args -> args for run-remote https://github.com/kubernetes/kubernetes/blob/master/test/e2e_node/runner/remote/run_remote.go
+# make WHAT=test/e2e_node/runner/remote/ && _output/local/go/bin/remote --help
+ 
+# --node-test-args -> args for e2e_node.test
+# make WHAT=test/e2e_node/e2e_node.test && _output/bin/e2e_node.test --help
+ 
+# --test-args -> args for ginkgo runner
+# make WHAT=vendor/github.com/onsi/ginkgo/ginkgo && _output/bin/ginkgo --help
+KUBE_MASTER_EXTRA_METADATA="user-data=/workspace/github.com/containerd/containerd/test/e2e/master.yaml,containerd-configure-sh=/workspace/github.com/containerd/containerd/cluster/gce/configure.sh,containerd-extra-init-sh=/workspace/github.com/containerd/containerd/test/e2e_node/gci-init.sh,containerd-env=/workspace/test-infra/jobs/e2e_node/containerd/containerd-master/cgroupv2/env-cgroupv2"
+ 
+KUBE_NODE_EXTRA_METADATA="user-data=/workspace/github.com/containerd/containerd/test/e2e/node.yaml,containerd-configure-sh=/workspace/github.com/containerd/containerd/cluster/gce/configure.sh,containerd-extra-init-sh=/workspace/github.com/containerd/containerd/test/e2e_node/gci-init.sh,containerd-env=/workspace/test-infra/jobs/e2e_node/containerd/containerd-master/cgroupv2/env-cgroupv2"
+ 
+KUBELET_TEST_ARGS="--runtime-cgroups=/system.slice/containerd.service --cgroup-driver=systemd"
+ 
+KUBE_GCI_VERSION=cos-97-cgroupv2-v1
+ 
+KUBE_GCE_NODE_IMAGE=cos-97-cgroupv2-v1
+ 
+KUBE_GCE_NODE_IMAGE=cos-97-cgroupv2-v1
+ 
+KUBE_GCE_NODE_PROJECT=jiamingxu-gke-dev
+ 
+KUBE_GCE_MASTER_PROJECT=jiamingxu-gke-dev
+ 
+ARTIFACTS="${TMPDIR}" JENKINS_GCE_SSH_PRIVATE_KEY_FILE="${SSH_KEY}" kubetest \
+  --up \
+  --down \
+  --test \
+  --gcp-project="${PROJECT}" \
+  --gcp-zone="${ZONE}" \
+  --provider=gce \
+  --gcp-node-image=gci \
+  --gcp-nodes=4 \
+  --ginkgo-parallel=30 \
+  --test_args="--ginkgo.flakeAttempts=2 --ginkgo.focus=.*OOMKiller.* --minStartupPods=8" \
+  --timeout=300m 2>&1 | tee -i "${TMPDIR}/build-log.txt"

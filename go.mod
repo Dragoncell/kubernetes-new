@@ -37,7 +37,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/golang/mock v1.6.0
 	github.com/golang/protobuf v1.5.3
-	github.com/google/cadvisor v0.47.1
+	github.com/google/cadvisor v0.0.0-20230525225808-0902cac379ab
 	github.com/google/cel-go v0.12.6
 	github.com/google/gnostic v0.5.7-v3refs
 	github.com/google/go-cmp v0.5.9
@@ -51,7 +51,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 	github.com/onsi/ginkgo/v2 v2.9.4
 	github.com/onsi/gomega v1.27.6
-	github.com/opencontainers/runc v1.1.7
+	github.com/opencontainers/runc v1.1.4
 	github.com/opencontainers/selinux v1.10.0
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
@@ -242,6 +242,8 @@ require (
 )
 
 replace (
+	github.com/google/cadvisor => github.com/Dragoncell/cadvisor v0.0.0-20230525225808-0902cac379ab
+	github.com/opencontainers/runc => github.com/Dragoncell/runc v0.0.0-20230525224402-f3edaa6d9dd6
 	k8s.io/api => ./staging/src/k8s.io/api
 	k8s.io/apiextensions-apiserver => ./staging/src/k8s.io/apiextensions-apiserver
 	k8s.io/apimachinery => ./staging/src/k8s.io/apimachinery

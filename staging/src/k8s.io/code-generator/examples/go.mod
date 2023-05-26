@@ -55,3 +55,7 @@ replace (
 	k8s.io/apimachinery => ../../apimachinery
 	k8s.io/client-go => ../../client-go
 )
+
+replace github.com/opencontainers/runc => github.com/Dragoncell/runc v0.0.0-20230525224402-f3edaa6d9dd6
+
+replace github.com/google/cadvisor => github.com/Dragoncell/cadvisor v0.0.0-20230525225808-0902cac379ab
