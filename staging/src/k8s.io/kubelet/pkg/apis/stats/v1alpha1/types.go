@@ -28,6 +28,18 @@ type Summary struct {
 	Pods []PodStats `json:"pods"`
 }
 
+type PSIData struct {
+	Avg10  *float64 `json:"avg10"`
+	Avg60  *float64 `json:"avg60"`
+	Avg300 *float64 `json:"avg300"`
+	Total  *uint64  `json:"total"`
+}
+
+type PSIStats struct {
+	Some *PSIData `json:"some,omitempty"`
+	Full *PSIData `json:"full,omitempty"`
+}
+
 // NodeStats holds node-level unprocessed sample stats.
 type NodeStats struct {
 	// Reference to the measured Node.
@@ -59,6 +71,8 @@ type NodeStats struct {
 	// Stats about the rlimit of system.
 	// +optional
 	Rlimit *RlimitStats `json:"rlimit,omitempty"`
+	// Stats about the IO pressure of the node
+	IO *IOStats `json:"io,omitempty"`
 }
 
 // RlimitStats are stats rlimit of OS.
@@ -197,6 +211,15 @@ type NetworkStats struct {
 	Interfaces []InterfaceStats `json:"interfaces,omitempty"`
 }
 
+// IOStats contains data about IO usage.
+type IOStats struct {
+	// The time at which these stats were updated.
+	Time metav1.Time `json:"time"`
+
+  // PSI stats of the overall node
+	PSI *PSIStats `json:"psi,omitempty"`
+}
+
 // CPUStats contains data about CPU usage.
 type CPUStats struct {
 	// The time at which these stats were updated.
@@ -208,6 +231,8 @@ type CPUStats struct {
 	// Cumulative CPU usage (sum of all cores) since object creation.
 	// +optional
 	UsageCoreNanoSeconds *uint64 `json:"usageCoreNanoSeconds,omitempty"`
+	// PSI stats of the overall node
+	PSI *PSIStats `json:"psi,omitempty"`
 }
 
 // MemoryStats contains data about memory usage.
@@ -235,6 +260,8 @@ type MemoryStats struct {
 	// Cumulative number of major page faults.
 	// +optional
 	MajorPageFaults *uint64 `json:"majorPageFaults,omitempty"`
+	// PSI stats of the overall node
+	PSI *PSIStats `json:"psi,omitempty"`
 }
 
 // AcceleratorStats contains stats for accelerators attached to the container.

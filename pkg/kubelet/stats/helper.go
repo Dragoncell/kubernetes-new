@@ -35,6 +35,20 @@ import (
 // is not reliable.
 const defaultNetworkInterfaceName = "eth0"
 
+// Convert libcontainer cgroups.PSIData to info.PSIData
+func convertPSIData(from *cadvisorapiv1.PSIData, to *statsapi.PSIData) {
+	to.Avg10 = float64Ptr(from.Avg10)
+	to.Avg60 = float64Ptr(from.Avg60)
+	to.Avg300 = float64Ptr(from.Avg300)
+	to.Total = uint64Ptr(from.Total)
+}
+
+// Convert libcontainer cgroups.PSIStats to info.PSIStats
+func convertPSI(from *cadvisorapiv1.PSIStats, to *statsapi.PSIStats) {
+	convertPSIData(&from.Some, to.Some)
+	convertPSIData(&from.Full, to.Full)
+}
+
 func cadvisorInfoToCPUandMemoryStats(info *cadvisorapiv2.ContainerInfo) (*statsapi.CPUStats, *statsapi.MemoryStats) {
 	cstat, found := latestContainerStats(info)
 	if !found {
@@ -46,6 +60,20 @@ func cadvisorInfoToCPUandMemoryStats(info *cadvisorapiv2.ContainerInfo) (*statsa
 		Time:                 metav1.NewTime(cstat.Timestamp),
 		UsageNanoCores:       uint64Ptr(0),
 		UsageCoreNanoSeconds: uint64Ptr(0),
+		PSI: &statsapi.PSIStats {
+			Some: &statsapi.PSIData {
+				Avg10: float64Ptr(0),
+				Avg60: float64Ptr(0),
+				Avg300: float64Ptr(0),
+				Total: uint64Ptr(0),
+			},
+			Full: &statsapi.PSIData {
+				Avg10: float64Ptr(0),
+				Avg60: float64Ptr(0),
+				Avg300: float64Ptr(0),
+				Total: uint64Ptr(0),
+			},
+		},
 	}
 	if info.Spec.HasCpu {
 		if cstat.CpuInst != nil {
@@ -53,6 +81,7 @@ func cadvisorInfoToCPUandMemoryStats(info *cadvisorapiv2.ContainerInfo) (*statsa
 		}
 		if cstat.Cpu != nil {
 			cpuStats.UsageCoreNanoSeconds = &cstat.Cpu.Usage.Total
+			convertPSI(&cstat.Cpu.PSI, cpuStats.PSI)
 		}
 	}
 	if info.Spec.HasMemory && cstat.Memory != nil {
@@ -65,7 +94,22 @@ func cadvisorInfoToCPUandMemoryStats(info *cadvisorapiv2.ContainerInfo) (*statsa
 			RSSBytes:        &cstat.Memory.RSS,
 			PageFaults:      &pageFaults,
 			MajorPageFaults: &majorPageFaults,
+			PSI:             &statsapi.PSIStats {
+				Some: &statsapi.PSIData {
+					Avg10: float64Ptr(0),
+					Avg60: float64Ptr(0),
+					Avg300: float64Ptr(0),
+					Total: uint64Ptr(0),
+				},
+				Full: &statsapi.PSIData {
+					Avg10: float64Ptr(0),
+					Avg60: float64Ptr(0),
+					Avg300: float64Ptr(0),
+					Total: uint64Ptr(0),
+				},
+			},
 		}
+		convertPSI(&cstat.Memory.PSI, memoryStats.PSI)
 		// availableBytes = memory limit (if known) - workingset
 		if !isMemoryUnlimited(info.Spec.Memory.Limit) {
 			availableBytes := info.Spec.Memory.Limit - cstat.Memory.WorkingSet
@@ -352,6 +396,10 @@ func getUint64Value(value *uint64) uint64 {
 }
 
 func uint64Ptr(i uint64) *uint64 {
+	return &i
+}
+
+func float64Ptr(i float64) *float64 {
 	return &i
 }
 

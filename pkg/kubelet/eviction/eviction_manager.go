@@ -239,6 +239,8 @@ func (m *managerImpl) synchronize(diskInfoProvider DiskInfoProvider, podFunc Act
 	}
 
 	klog.V(3).InfoS("Eviction manager: synchronize housekeeping")
+
+	klog.V(2).InfoS("Eviction manager: POC POC POC POC")
 	// build the ranking functions (if not yet known)
 	// TODO: have a function in cadvisor that lets us know if global housekeeping has completed
 	if m.dedicatedImageFs == nil {
@@ -258,6 +260,9 @@ func (m *managerImpl) synchronize(diskInfoProvider DiskInfoProvider, podFunc Act
 		klog.ErrorS(err, "Eviction manager: failed to get summary stats")
 		return nil
 	}
+
+	klog.V(3).InfoS("Eviction manager", "PSI CPU", summary.Node.CPU)
+	klog.V(3).InfoS("Eviction manager", "PSI Memory", summary.Node.Memory)
 
 	if m.clock.Since(m.thresholdsLastUpdated) > notifierRefreshInterval {
 		m.thresholdsLastUpdated = m.clock.Now()
@@ -330,6 +335,21 @@ func (m *managerImpl) synchronize(diskInfoProvider DiskInfoProvider, podFunc Act
 
 	if len(thresholds) == 0 {
 		klog.V(3).InfoS("Eviction manager: no resources are starved")
+		return nil
+	}
+
+	klog.V(3).InfoS("Eviction manager: checking for pressure resources warning")
+	allWaringThresholds := true
+	for i := range thresholds {
+		signal := thresholds[i].Signal
+		if signal != evictionapi.SignalMemoryWarning && signal != evictionapi.SignalCPUWarning && signal != evictionapi.SignalIOWarning {
+			allWaringThresholds = false
+			break
+		}
+	}
+
+	if allWaringThresholds {
+		klog.V(3).InfoS("Eviction manager: no resources are starved as thresholds are all from warning")
 		return nil
 	}
 
