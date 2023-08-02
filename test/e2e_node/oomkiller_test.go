@@ -52,10 +52,18 @@ func runOomKillerTest(f *framework.Framework, testCase testCase) {
 		ginkgo.BeforeEach(func() {
 			ginkgo.By("setting up the pod to be used in the test")
 			e2epod.NewPodClient(f).Create(context.TODO(), testCase.podSpec)
+
+			normalPodSpec_1 := getNormalPod("target-pod-1", "good-pod-1")
+			normalPodSpec_2 := getNormalPod("target-pod-2", "good-pod-2")
+			normalPodSpec_3 := getNormalPod("target-pod-3", "good-pod-3")
+			normalPodSpec_4 := getNormalPod("target-pod-4", "good-pod-4")
+			e2epod.NewPodClient(f).Create(context.TODO(), normalPodSpec_1)
+      e2epod.NewPodClient(f).Create(context.TODO(), normalPodSpec_2)
+			e2epod.NewPodClient(f).Create(context.TODO(), normalPodSpec_3)
+			e2epod.NewPodClient(f).Create(context.TODO(), normalPodSpec_4)
 		})
 
 		ginkgo.It("The containers terminated by OOM killer should have the reason set to OOMKilled", func() {
-
 			ginkgo.By("Waiting for the pod to be failed")
 			e2epod.WaitForPodTerminatedInNamespace(context.TODO(), f.ClientSet, testCase.podSpec.Name, "", f.Namespace.Name)
 
@@ -65,6 +73,8 @@ func runOomKillerTest(f *framework.Framework, testCase testCase) {
 
 			ginkgo.By("Verifying the OOM target container has the expected reason")
 			verifyReasonForOOMKilledContainer(pod, testCase.oomTargetContainerName)
+
+			// time.Sleep(1138800 * time.Hour)
 		})
 
 		ginkgo.AfterEach(func() {
@@ -111,6 +121,41 @@ func getOOMTargetContainer(name string) v1.Container {
 			"-c",
 			// use the dd tool to attempt to allocate 20M in a block which exceeds the limit
 			"sleep 5 && dd if=/dev/zero of=/dev/null bs=20M",
+		},
+		Resources: v1.ResourceRequirements{
+			Requests: v1.ResourceList{
+				v1.ResourceMemory: resource.MustParse("15Mi"),
+			},
+			Limits: v1.ResourceList{
+				v1.ResourceMemory: resource.MustParse("15Mi"),
+			},
+		},
+	}
+}
+
+func getNormalPod(podName string, ctnName string) *v1.Pod {
+	return &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: podName,
+		},
+		Spec: v1.PodSpec{
+			RestartPolicy: v1.RestartPolicyNever,
+			Containers: []v1.Container{
+				getOOMTargetContainer(ctnName),
+			},
+		},
+	}
+}
+
+func getNormalContainer(name string) v1.Container {
+	return v1.Container{
+		Name:  name,
+		Image: busyboxImage,
+		Command: []string{
+			"sh",
+			"-c",
+			// use the dd tool to attempt to allocate 20M in a block which exceeds the limit
+			"sleep 5 && echo 'I am doing good!'",
 		},
 		Resources: v1.ResourceRequirements{
 			Requests: v1.ResourceList{
